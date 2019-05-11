@@ -383,6 +383,13 @@ func renderCode(ctx *context.Context) {
 	ctx.Data["PageIsViewCode"] = true
 
 	if ctx.Repo.Repository.IsEmpty {
+		// Check permission to add or upload new file.
+		if ctx.Repo.CanWrite(models.UnitTypeCode) {
+			ctx.Data["BranchName"] = ctx.Repo.Repository.DefaultBranch
+			ctx.Data["TreePath"] = ""
+			ctx.Data["CanAddFile"] = !ctx.Repo.Repository.IsArchived
+			ctx.Data["CanUploadFile"] = setting.Repository.Upload.Enabled && !ctx.Repo.Repository.IsArchived
+		}
 		ctx.HTML(200, tplRepoEMPTY)
 		return
 	}

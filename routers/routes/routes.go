@@ -725,7 +725,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Post("/upload-file", repo.UploadFileToServer)
 				m.Post("/upload-remove", bindIgnErr(auth.RemoveUploadFileForm{}), repo.RemoveUploadFileFromServer)
 			}, context.RepoRef(), repo.MustBeEditable, repo.MustBeAbleToUpload)
-		}, context.RepoMustNotBeArchived(), reqRepoCodeWriter, repo.MustBeNotEmpty)
+		}, context.RepoMustNotBeArchived(), reqRepoCodeWriter /*, repo.MustBeNotEmpty*/)
 
 		m.Group("/branches", func() {
 			m.Group("/_new/", func() {
