@@ -173,10 +173,10 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		return nil, err
 	}
 
-		if err := t.Clone(opts.OldBranch); err != nil {
-			return nil, err
-		}
-	
+	if err := t.Clone(opts.OldBranch); err != nil {
+		return nil, err
+	}
+
 	if err := t.SetDefaultIndex(); err != nil {
 		return nil, err
 	}
@@ -195,8 +195,6 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		if opts.LastCommitID == "" {
 			opts.LastCommitID = commit.ID.String()
 		}
-
-		
 
 		if !opts.IsNewFile {
 			fromEntry, err := commit.GetTreeEntryByPath(fromTreePath)
