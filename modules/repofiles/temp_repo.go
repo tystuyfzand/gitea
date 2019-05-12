@@ -54,22 +54,43 @@ func (t *TemporaryUploadRepository) Close() {
 
 // Clone the base repository to our path and set branch as the HEAD
 func (t *TemporaryUploadRepository) Clone(branch string) error {
-	if _, stderr, err := process.GetManager().ExecTimeout(5*time.Minute,
-		fmt.Sprintf("Clone (git clone -s --bare): %s", t.basePath),
-		"git", "clone", "-s", "--bare", "-b", branch, t.repo.RepoPath(), t.basePath); err != nil {
-		if matched, _ := regexp.MatchString(".*Remote branch .* not found in upstream origin.*", stderr); matched {
-			return git.ErrBranchNotExist{
-				Name: branch,
+	if t.repo.IsEmpty {
+		if _, stderr, err := process.GetManager().ExecTimeout(5*time.Minute,
+			fmt.Sprintf("Clone (git clone -s --bare): %s", t.basePath),
+			"git", "clone", "-s", "--bare", t.repo.RepoPath(), t.basePath); err != nil {
+			if matched, _ := regexp.MatchString(".*Remote branch .* not found in upstream origin.*", stderr); matched {
+				return git.ErrBranchNotExist{
+					Name: branch,
+				}
+			} else if matched, _ := regexp.MatchString(".* repository .* does not exist.*", stderr); matched {
+				return models.ErrRepoNotExist{
+					ID:        t.repo.ID,
+					UID:       t.repo.OwnerID,
+					OwnerName: t.repo.OwnerName,
+					Name:      t.repo.Name,
+				}
+			} else {
+				return fmt.Errorf("Clone: %v %s", err, stderr)
 			}
-		} else if matched, _ := regexp.MatchString(".* repository .* does not exist.*", stderr); matched {
-			return models.ErrRepoNotExist{
-				ID:        t.repo.ID,
-				UID:       t.repo.OwnerID,
-				OwnerName: t.repo.OwnerName,
-				Name:      t.repo.Name,
+		}
+	} else {
+		if _, stderr, err := process.GetManager().ExecTimeout(5*time.Minute,
+			fmt.Sprintf("Clone (git clone -s --bare): %s", t.basePath),
+			"git", "clone", "-s", "--bare", "-b", branch, t.repo.RepoPath(), t.basePath); err != nil {
+			if matched, _ := regexp.MatchString(".*Remote branch .* not found in upstream origin.*", stderr); matched {
+				return git.ErrBranchNotExist{
+					Name: branch,
+				}
+			} else if matched, _ := regexp.MatchString(".* repository .* does not exist.*", stderr); matched {
+				return models.ErrRepoNotExist{
+					ID:        t.repo.ID,
+					UID:       t.repo.OwnerID,
+					OwnerName: t.repo.OwnerName,
+					Name:      t.repo.Name,
+				}
+			} else {
+				return fmt.Errorf("Clone: %v %s", err, stderr)
 			}
-		} else {
-			return fmt.Errorf("Clone: %v %s", err, stderr)
 		}
 	}
 	gitRepo, err := git.OpenRepository(t.basePath)
@@ -82,6 +103,9 @@ func (t *TemporaryUploadRepository) Clone(branch string) error {
 
 // SetDefaultIndex sets the git index to our HEAD
 func (t *TemporaryUploadRepository) SetDefaultIndex() error {
+	if t.repo.IsEmpty {
+		return nil
+	}
 	if _, stderr, err := process.GetManager().ExecDir(5*time.Minute,
 		t.basePath,
 		fmt.Sprintf("SetDefaultIndex (git read-tree HEAD): %s", t.basePath),
@@ -269,15 +293,27 @@ func (t *TemporaryUploadRepository) CommitTree(author, committer *models.User, t
 		"GIT_COMMITTER_EMAIL="+committerSig.Email,
 		"GIT_COMMITTER_DATE="+commitTimeStr,
 	)
-	commitHash, stderr, err := process.GetManager().ExecDirEnv(5*time.Minute,
-		t.basePath,
-		fmt.Sprintf("commitTree (git commit-tree): %s", t.basePath),
-		env,
-		"git", "commit-tree", treeHash, "-p", "HEAD", "-m", message)
-	if err != nil {
-		return "", fmt.Errorf("git commit-tree: %s", stderr)
+	if t.repo.IsEmpty {
+		commitHash, stderr, err := process.GetManager().ExecDirEnv(5*time.Minute,
+			t.basePath,
+			fmt.Sprintf("commitTree (git commit-tree): %s", t.basePath),
+			env,
+			"git", "commit-tree", treeHash, "-m", message)
+		if err != nil {
+			return "", fmt.Errorf("git commit-tree: %s", stderr)
+		}
+		return strings.TrimSpace(commitHash), nil
+	} else {
+		commitHash, stderr, err := process.GetManager().ExecDirEnv(5*time.Minute,
+			t.basePath,
+			fmt.Sprintf("commitTree (git commit-tree): %s", t.basePath),
+			env,
+			"git", "commit-tree", treeHash, "-p", "HEAD", "-m", message)
+		if err != nil {
+			return "", fmt.Errorf("git commit-tree: %s", stderr)
+		}
+		return strings.TrimSpace(commitHash), nil
 	}
-	return strings.TrimSpace(commitHash), nil
 }
 
 // Push the provided commitHash to the repository branch by the provided user

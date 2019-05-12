@@ -125,6 +125,10 @@ func GetEditorconfig(ctx *context.APIContext) {
 	// responses:
 	//   200:
 	//     description: success
+	if ctx.Repo.Repository.IsEmpty {
+		ctx.NotFound()
+		return
+	}
 	ec, err := ctx.Repo.GetEditorconfig()
 	if err != nil {
 		if git.IsErrNotExist(err) {

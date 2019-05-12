@@ -418,6 +418,7 @@ func RepoAssignment() macaron.Handler {
 
 		// repo is empty and display enable
 		if ctx.Repo.Repository.IsEmpty {
+			ctx.Repo.BranchName = ctx.Repo.Repository.DefaultBranch
 			ctx.Data["BranchName"] = ctx.Repo.Repository.DefaultBranch
 			return
 		}
@@ -560,6 +561,7 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 	return func(ctx *Context) {
 		// Empty repository does not have reference information.
 		if ctx.Repo.Repository.IsEmpty {
+			ctx.Repo.IsViewBranch = true
 			return
 		}
 

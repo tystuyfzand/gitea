@@ -65,6 +65,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 	canCommit := renderCommitRights(ctx)
 
 	treePath := cleanUploadFileName(ctx.Repo.TreePath)
+
 	if treePath != ctx.Repo.TreePath {
 		if isNewFile {
 			ctx.Redirect(path.Join(ctx.Repo.RepoLink, "_new", util.PathEscapeSegments(ctx.Repo.BranchName), util.PathEscapeSegments(treePath)))
@@ -73,6 +74,8 @@ func editFile(ctx *context.Context, isNewFile bool) {
 		}
 		return
 	}
+
+	fmt.Println("TreePath:", treePath)
 
 	treeNames, treePaths := getParentTreeFields(ctx.Repo.TreePath)
 
@@ -129,6 +132,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 		treeNames = append(treeNames, "") // Append empty string to allow user name the new file.
 	}
 
+	ctx.Data["TreePath"] = treePath
 	ctx.Data["TreeNames"] = treeNames
 	ctx.Data["TreePaths"] = treePaths
 	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
@@ -467,6 +471,7 @@ func UploadFile(ctx *context.Context) {
 		treeNames = []string{""}
 	}
 
+	ctx.Data["TreePath"] = treePath
 	ctx.Data["TreeNames"] = treeNames
 	ctx.Data["TreePaths"] = treePaths
 	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
@@ -530,25 +535,27 @@ func UploadFilePost(ctx *context.Context, form auth.UploadRepoFileForm) {
 		return
 	}
 
-	var newTreePath string
-	for _, part := range treeNames {
-		newTreePath = path.Join(newTreePath, part)
-		entry, err := ctx.Repo.Commit.GetTreeEntryByPath(newTreePath)
-		if err != nil {
-			if git.IsErrNotExist(err) {
-				// Means there is no item with that name, so we're good
-				break
+	if !ctx.Repo.Repository.IsEmpty {
+		var newTreePath string
+		for _, part := range treeNames {
+			newTreePath = path.Join(newTreePath, part)
+			entry, err := ctx.Repo.Commit.GetTreeEntryByPath(newTreePath)
+			if err != nil {
+				if git.IsErrNotExist(err) {
+					// Means there is no item with that name, so we're good
+					break
+				}
+
+				ctx.ServerError("Repo.Commit.GetTreeEntryByPath", err)
+				return
 			}
 
-			ctx.ServerError("Repo.Commit.GetTreeEntryByPath", err)
-			return
-		}
-
-		// User can only upload files to a directory.
-		if !entry.IsDir() {
-			ctx.Data["Err_TreePath"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.editor.directory_is_a_file", part), tplUploadFile, &form)
-			return
+			// User can only upload files to a directory.
+			if !entry.IsDir() {
+				ctx.Data["Err_TreePath"] = true
+				ctx.RenderWithErr(ctx.Tr("repo.editor.directory_is_a_file", part), tplUploadFile, &form)
+				return
+			}
 		}
 	}
 
