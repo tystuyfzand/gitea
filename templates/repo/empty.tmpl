@@ -18,8 +18,7 @@
 						{{if .Repository.CanEnableEditor}}
 							<div class="item">
 								<div class="center fitted item" id="file-buttons">
-									<div class="ui tiny blue buttons">
-										{{.CanAddFile}}- {{.CanUploadFile}}
+									<div class="ui blue buttons">
 										{{if .CanAddFile}}
 											<a href="{{.RepoLink}}/_new/{{EscapePound .BranchName}}/{{EscapePound .TreePath}}" class="ui button">
 												{{.i18n.Tr "repo.editor.new_file"}}
