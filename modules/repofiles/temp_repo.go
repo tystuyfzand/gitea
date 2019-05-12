@@ -303,17 +303,17 @@ func (t *TemporaryUploadRepository) CommitTree(author, committer *models.User, t
 			return "", fmt.Errorf("git commit-tree: %s", stderr)
 		}
 		return strings.TrimSpace(commitHash), nil
-	} else {
-		commitHash, stderr, err := process.GetManager().ExecDirEnv(5*time.Minute,
-			t.basePath,
-			fmt.Sprintf("commitTree (git commit-tree): %s", t.basePath),
-			env,
-			"git", "commit-tree", treeHash, "-p", "HEAD", "-m", message)
-		if err != nil {
-			return "", fmt.Errorf("git commit-tree: %s", stderr)
-		}
-		return strings.TrimSpace(commitHash), nil
 	}
+
+	commitHash, stderr, err := process.GetManager().ExecDirEnv(5*time.Minute,
+		t.basePath,
+		fmt.Sprintf("commitTree (git commit-tree): %s", t.basePath),
+		env,
+		"git", "commit-tree", treeHash, "-p", "HEAD", "-m", message)
+	if err != nil {
+		return "", fmt.Errorf("git commit-tree: %s", stderr)
+	}
+	return strings.TrimSpace(commitHash), nil
 }
 
 // Push the provided commitHash to the repository branch by the provided user
