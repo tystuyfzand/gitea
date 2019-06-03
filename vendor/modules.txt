@@ -294,6 +294,8 @@ github.com/satori/go.uuid
 github.com/sergi/go-diff/diffmatchpatch
 # github.com/shurcooL/httpfs v0.0.0-20190527155220-6a4d4a70508b
 github.com/shurcooL/httpfs/vfsutil
+# github.com/shurcooL/httpgzip v0.0.0-20190516014818-1c7afaae1203
+github.com/shurcooL/httpgzip
 # github.com/shurcooL/sanitized_anchor_name v0.0.0-20160918041101-1dba4b3954bc
 github.com/shurcooL/sanitized_anchor_name
 # github.com/shurcooL/vfsgen v0.0.0-20181202132449-6a9ea43bcacd
@@ -362,7 +364,9 @@ golang.org/x/crypto/ssh/agent
 golang.org/x/net/html/charset
 golang.org/x/net/html
 golang.org/x/net/html/atom
+golang.org/x/net/http/httpguts
 golang.org/x/net/context/ctxhttp
+golang.org/x/net/idna
 golang.org/x/net/context
 # golang.org/x/oauth2 v0.0.0-20181101160152-c453e0c75759
 golang.org/x/oauth2
@@ -389,6 +393,8 @@ golang.org/x/text/encoding/unicode
 golang.org/x/text/internal/tag
 golang.org/x/text/internal/utf8internal
 golang.org/x/text/runes
+golang.org/x/text/secure/bidirule
+golang.org/x/text/unicode/bidi
 # google.golang.org/appengine v1.2.0
 google.golang.org/appengine/cloudsql
 google.golang.org/appengine/urlfetch

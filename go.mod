@@ -3,6 +3,7 @@ module code.gitea.io/gitea
 go 1.12
 
 require (
+	code.gitea.io/log v0.0.0-20190526010349-0560851a166a
 	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/PuerkitoBio/goquery v0.0.0-20170324135448-ed7d758e9a34
 	github.com/RoaringBitmap/roaring v0.4.7 // indirect
@@ -102,6 +103,7 @@ require (
 	github.com/satori/go.uuid v1.2.0
 	github.com/sergi/go-diff v1.0.0
 	github.com/shurcooL/httpfs v0.0.0-20190527155220-6a4d4a70508b // indirect
+	github.com/shurcooL/httpgzip v0.0.0-20190516014818-1c7afaae1203
 	github.com/shurcooL/sanitized_anchor_name v0.0.0-20160918041101-1dba4b3954bc // indirect
 	github.com/shurcooL/vfsgen v0.0.0-20181202132449-6a9ea43bcacd
 	github.com/siddontang/go-snappy v0.0.0-20140704025258-d8f7bb82a96d // indirect
@@ -118,7 +120,7 @@ require (
 	golang.org/x/crypto v0.0.0-20190418165655-df01cb2cc480
 	golang.org/x/net v0.0.0-20181023162649-9b4f9f5ad519
 	golang.org/x/oauth2 v0.0.0-20181101160152-c453e0c75759
-	golang.org/x/sys v0.0.0-20190403152447-81d4e9dc473e
+	golang.org/x/sys v0.0.0-20190429190828-d89cdac9e872
 	golang.org/x/text v0.3.0
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/asn1-ber.v1 v1.0.0-20150924051756-4e86f4367175 // indirect

@@ -5,8 +5,12 @@
 package public
 
 import (
+	"bytes"
+	"compress/gzip"
 	"encoding/base64"
+	"io"
 	"log"
+	"mime"
 	"net/http"
 	"path"
 	"path/filepath"
@@ -14,6 +18,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/setting"
+
+	"github.com/shurcooL/httpgzip"
 	"gopkg.in/macaron.v1"
 )
 
@@ -36,23 +42,6 @@ func Custom(opts *Options) macaron.Handler {
 	return opts.staticHandler(path.Join(setting.CustomPath, "public"))
 }
 
-// staticFileSystem implements http.FileSystem interface.
-type staticFileSystem struct {
-	dir *http.Dir
-}
-
-func newStaticFileSystem(directory string) staticFileSystem {
-	if !filepath.IsAbs(directory) {
-		directory = filepath.Join(macaron.Root, directory)
-	}
-	dir := http.Dir(directory)
-	return staticFileSystem{&dir}
-}
-
-func (fs staticFileSystem) Open(name string) (http.File, error) {
-	return fs.dir.Open(name)
-}
-
 // StaticHandler sets up a new middleware for serving static files in the
 func StaticHandler(dir string, opts *Options) macaron.Handler {
 	return opts.staticHandler(dir)
@@ -73,7 +62,7 @@ func (opts *Options) staticHandler(dir string) macaron.Handler {
 		opts.Prefix = strings.TrimRight(opts.Prefix, "/")
 	}
 	if opts.FileSystem == nil {
-		opts.FileSystem = newStaticFileSystem(dir)
+		opts.FileSystem = http.Dir(dir)
 	}
 
 	return func(ctx *macaron.Context, log *log.Logger) {
@@ -142,6 +131,29 @@ func (opts *Options) handle(ctx *macaron.Context, log *log.Logger, opt *Options)
 		if ctx.Req.Header.Get("If-None-Match") == tag {
 			ctx.Resp.WriteHeader(304)
 			return false
+		}
+	}
+
+	if _, ok := f.(httpgzip.NotWorthGzipCompressing); !ok {
+		if g, ok := f.(httpgzip.GzipByter); ok {
+			ctx.Resp.Header().Set("Content-Encoding", "gzip")
+			rd := bytes.NewReader(g.GzipBytes())
+			ctype := mime.TypeByExtension(filepath.Ext(fi.Name()))
+			if ctype == "" {
+				// read a chunk to decide between utf-8 text and binary
+				var buf [512]byte
+				grd, _ := gzip.NewReader(rd)
+				n, _ := io.ReadFull(grd, buf[:])
+				ctype = http.DetectContentType(buf[:n])
+				_, err := rd.Seek(0, io.SeekStart) // rewind to output whole file
+				if err != nil {
+					log.Printf("rd.Seek error: %v\n", err)
+					return false
+				}
+			}
+			ctx.Resp.Header().Set("Content-Type", ctype)
+			http.ServeContent(ctx.Resp, ctx.Req.Request, file, fi.ModTime(), rd)
+			return true
 		}
 	}
 
