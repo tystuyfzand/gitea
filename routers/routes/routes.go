@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/admin"
+	"code.gitea.io/gitea/routers/cup"
 	apiv1 "code.gitea.io/gitea/routers/api/v1"
 	"code.gitea.io/gitea/routers/dev"
 	"code.gitea.io/gitea/routers/org"
@@ -979,6 +980,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 		m.Get("/metrics", routers.Metrics)
 	}
+
+	m.Get("/cup", cup.CreateCup)
+	m.Get("/cup/:username", cup.MyCups)
 
 	// Not found handler.
 	m.NotFound(routers.NotFound)
