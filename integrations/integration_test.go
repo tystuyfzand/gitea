@@ -34,7 +34,7 @@ import (
 	"gopkg.in/testfixtures.v2"
 )
 
-var mac *macaron.Macaron
+var c chi.Router
 
 type NilResponseRecorder struct {
 	httptest.ResponseRecorder
@@ -55,8 +55,8 @@ func NewNilResponseRecorder() *NilResponseRecorder {
 
 func TestMain(m *testing.M) {
 	initIntegrationTest()
-	mac = routes.NewMacaron()
-	routes.RegisterRoutes(mac)
+	c = routes.NewChi()
+	routes.RegisterRoutes(c)
 
 	var helper testfixtures.Helper
 	if setting.UseMySQL {
@@ -335,7 +335,7 @@ const NoExpectedStatus = -1
 
 func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.ResponseRecorder {
 	recorder := httptest.NewRecorder()
-	mac.ServeHTTP(recorder, req)
+	c.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
 		if !assert.EqualValues(t, expectedStatus, recorder.Code,
 			"Request: %s %s", req.Method, req.URL.String()) {
@@ -347,7 +347,7 @@ func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.
 
 func MakeRequestNilResponseRecorder(t testing.TB, req *http.Request, expectedStatus int) *NilResponseRecorder {
 	recorder := NewNilResponseRecorder()
-	mac.ServeHTTP(recorder, req)
+	c.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
 		if !assert.EqualValues(t, expectedStatus, recorder.Code,
 			"Request: %s %s", req.Method, req.URL.String()) {

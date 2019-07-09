@@ -14,13 +14,12 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/setting"
-	"gopkg.in/macaron.v1"
 )
 
 //go:generate go run -mod=vendor main.go
 //go:generate go fmt bindata.go
 
-// Options represents the available options to configure the macaron handler.
+// Options represents the available options to configure the http handler.
 type Options struct {
 	Directory   string
 	IndexFile   string
@@ -32,9 +31,11 @@ type Options struct {
 	Prefix       string
 }
 
-// Custom implements the macaron static handler for serving custom assets.
-func Custom(opts *Options) macaron.Handler {
-	return opts.staticHandler(path.Join(setting.CustomPath, "public"))
+// Custom implements the http static handler for serving custom assets.
+func Custom(opts *Options) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return opts.staticHandler(path.Join(setting.CustomPath, "public"))
+	}
 }
 
 // staticFileSystem implements http.FileSystem interface.
@@ -44,7 +45,7 @@ type staticFileSystem struct {
 
 func newStaticFileSystem(directory string) staticFileSystem {
 	if !filepath.IsAbs(directory) {
-		directory = filepath.Join(macaron.Root, directory)
+		directory = filepath.Join(setting.AppWorkPath, directory)
 	}
 	dir := http.Dir(directory)
 	return staticFileSystem{&dir}
@@ -55,11 +56,13 @@ func (fs staticFileSystem) Open(name string) (http.File, error) {
 }
 
 // StaticHandler sets up a new middleware for serving static files in the
-func StaticHandler(dir string, opts *Options) macaron.Handler {
-	return opts.staticHandler(dir)
+func StaticHandler(dir string, opts *Options) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return opts.staticHandler(dir)
+	}
 }
 
-func (opts *Options) staticHandler(dir string) macaron.Handler {
+func (opts *Options) staticHandler(dir string) http.HandlerFunc {
 	// Defaults
 	if len(opts.IndexFile) == 0 {
 		opts.IndexFile = "index.html"
@@ -77,17 +80,17 @@ func (opts *Options) staticHandler(dir string) macaron.Handler {
 		opts.FileSystem = newStaticFileSystem(dir)
 	}
 
-	return func(ctx *macaron.Context, log *log.Logger) {
-		opts.handle(ctx, log, opts)
+	return func(w http.ResponseWriter, req *http.Request) {
+		opts.handle(w, req, opts)
 	}
 }
 
-func (opts *Options) handle(ctx *macaron.Context, log *log.Logger, opt *Options) bool {
-	if ctx.Req.Method != "GET" && ctx.Req.Method != "HEAD" {
+func (opts *Options) handle(w http.ResponseWriter, req *http.Request, opt *Options) bool {
+	if req.Method != "GET" && req.Method != "HEAD" {
 		return false
 	}
 
-	file := ctx.Req.URL.Path
+	file := req.URL.Path
 	// if we have a prefix, filter requests by stripping the prefix
 	if opt.Prefix != "" {
 		if !strings.HasPrefix(file, opt.Prefix) {
@@ -114,8 +117,8 @@ func (opts *Options) handle(ctx *macaron.Context, log *log.Logger, opt *Options)
 	// Try to serve index file
 	if fi.IsDir() {
 		// Redirect if missing trailing slash.
-		if !strings.HasSuffix(ctx.Req.URL.Path, "/") {
-			http.Redirect(ctx.Resp, ctx.Req.Request, path.Clean(ctx.Req.URL.Path+"/"), http.StatusFound)
+		if !strings.HasSuffix(req.URL.Path, "/") {
+			http.Redirect(w, req, path.Clean(req.URL.Path+"/"), http.StatusFound)
 			return true
 		}
 
@@ -137,16 +140,16 @@ func (opts *Options) handle(ctx *macaron.Context, log *log.Logger, opt *Options)
 
 	// Add an Expires header to the static content
 	if opt.ExpiresAfter > 0 {
-		ctx.Resp.Header().Set("Expires", time.Now().Add(opt.ExpiresAfter).UTC().Format(http.TimeFormat))
+		w.Header().Set("Expires", time.Now().Add(opt.ExpiresAfter).UTC().Format(http.TimeFormat))
 		tag := GenerateETag(string(fi.Size()), fi.Name(), fi.ModTime().UTC().Format(http.TimeFormat))
-		ctx.Resp.Header().Set("ETag", tag)
-		if ctx.Req.Header.Get("If-None-Match") == tag {
-			ctx.Resp.WriteHeader(304)
+		w.Header().Set("ETag", tag)
+		if req.Header.Get("If-None-Match") == tag {
+			w.WriteHeader(304)
 			return false
 		}
 	}
 
-	http.ServeContent(ctx.Resp, ctx.Req.Request, file, fi.ModTime(), f)
+	http.ServeContent(w, req, file, fi.ModTime(), f)
 	return true
 }
 

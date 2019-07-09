@@ -6,14 +6,14 @@
 
 package public
 
-import (
-	"gopkg.in/macaron.v1"
-)
+import "net/http"
 
-// Static implements the macaron static handler for serving assets.
-func Static(opts *Options) macaron.Handler {
-	opts.FileSystem = Assets
-	// we don't need to pass the directory, because the directory var is only
-	// used when in the options there is no FileSystem.
-	return opts.staticHandler("")
+// Static implements the http static handler for serving assets.
+func Static(opts *Options) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		opts.FileSystem = Assets
+		// we don't need to pass the directory, because the directory var is only
+		// used when in the options there is no FileSystem.
+		return opts.staticHandler("")
+	}
 }

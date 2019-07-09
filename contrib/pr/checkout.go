@@ -114,8 +114,8 @@ func runPR() {
 	//routers.GlobalInit()
 	external.RegisterParsers()
 	markup.Init()
-	m := routes.NewMacaron()
-	routes.RegisterRoutes(m)
+	c := routes.NewChi()
+	routes.RegisterRoutes(c)
 
 	log.Printf("[PR] Ready for testing !\n")
 	log.Printf("[PR] Login with user1, user2, user3, ... with pass: password\n")
@@ -135,7 +135,7 @@ func runPR() {
 	*/
 
 	//Start the server
-	http.ListenAndServe(":8080", context2.ClearHandler(m))
+	http.ListenAndServe(":8080", context2.ClearHandler(c))
 
 	log.Printf("[PR] Cleaning up ...\n")
 	/*

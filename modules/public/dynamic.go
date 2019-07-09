@@ -6,11 +6,11 @@
 
 package public
 
-import (
-	"gopkg.in/macaron.v1"
-)
+import "net/http"
 
 // Static implements the macaron static handler for serving assets.
-func Static(opts *Options) macaron.Handler {
-	return opts.staticHandler(opts.Directory)
+func Static(opts *Options) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return opts.staticHandler(opts.Directory)
+	}
 }
