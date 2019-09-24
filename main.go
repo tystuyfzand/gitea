@@ -51,6 +51,8 @@ func init() {
 }
 
 func main() {
+	defer log.Close()
+
 	app := cli.NewApp()
 	app.Name = "Gitea"
 	app.Usage = "A painless self-hosted Git service"
