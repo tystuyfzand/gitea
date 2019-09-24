@@ -44,6 +44,16 @@ Start tests based on the database container
 TEST_PGSQL_HOST=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' pgsql) TEST_PGSQL_DBNAME=test TEST_PGSQL_USERNAME=postgres TEST_PGSQL_PASSWORD=postgres make test-pgsql
 ```
 
+## Run mssql integrations tests
+Setup a mssql database inside docker
+```
+docker run -e "ACCEPT_EULA=Y" -e "MSSQL_PID=Standard" -e "SA_PASSWORD=MwantsaSecurePassword1" -p 1433:1433 --rm --name mssql microsoft/mssql-server-linux:latest #(just ctrl-c to stop db and clean the container) 
+```
+Start tests based on the database container
+```
+TEST_MSSQL_HOST=$(docker inspect -f 'localhost:1433' mssql) TEST_MSSQL_DBNAME=test TEST_MSSQL_USERNAME=sa TEST_MSSQL_PASSWORD=MwantsaSecurePassword1 make test-mssql
+```
+
 ## Running individual tests
 
 Example command to run GPG test with sqlite backend:
