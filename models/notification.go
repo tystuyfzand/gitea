@@ -10,12 +10,8 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
-type (
-	// NotificationStatus is the status of the notification (read or unread)
-	NotificationStatus uint8
-	// NotificationSource is the source of the notification (issue, PR, commit, etc)
-	NotificationSource uint8
-)
+// NotificationStatus is the status of the notification (read or unread)
+type NotificationStatus uint8
 
 const (
 	// NotificationStatusUnread represents an unread notification
@@ -26,6 +22,9 @@ const (
 	NotificationStatusPinned
 )
 
+// NotificationSource is the source of the notification (issue, PR, commit, etc)
+type NotificationSource uint8
+
 const (
 	// NotificationSourceIssue is a notification of an issue
 	NotificationSourceIssue NotificationSource = iota + 1
@@ -33,6 +32,22 @@ const (
 	NotificationSourcePullRequest
 	// NotificationSourceCommit is a notification of a commit
 	NotificationSourceCommit
+	// NotificationSourceRelease is a notifiation of a release
+	NotificationSourceRelease
+)
+
+// NotificationBy is the reason why user is notified.
+type NotificationBy uint8
+
+const (
+	// NotificationByWatchRepo reprensents notification according to
+	NotificationByWatchRepo NotificationBy = iota + 1
+	// NotificationBySubcribeIssue
+	NotificationBySubcribeIssue
+	// NotificationByMentioned
+	NotificationByMentioned
+	// NotificationByParticipated
+	NotificationByParticipated
 )
 
 // Notification represents a notification
@@ -43,10 +58,12 @@ type Notification struct {
 
 	Status NotificationStatus `xorm:"SMALLINT INDEX NOT NULL"`
 	Source NotificationSource `xorm:"SMALLINT INDEX NOT NULL"`
+	By     NotificationBy     `xorm:"SMALLINT INDEX NOT NULL"`
 
 	IssueID   int64  `xorm:"INDEX NOT NULL"`
 	CommitID  string `xorm:"INDEX"`
 	CommentID int64
+	ReleaseID int64
 	Comment   *Comment `xorm:"-"`
 
 	UpdatedBy int64 `xorm:"INDEX NOT NULL"`
@@ -58,29 +75,38 @@ type Notification struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated INDEX NOT NULL"`
 }
 
+// NotificationOpts represents notification options
+type NotificationOpts struct {
+	IssueID   int64
+	CommentID int64
+	CommitID  string
+	ReleaseID int64
+	DoerID    int64
+}
+
 // CreateOrUpdateIssueNotifications creates an issue notification
 // for each watcher, or updates it if already exists
-func CreateOrUpdateIssueNotifications(issueID, commentID int64, notificationAuthorID int64) error {
+func CreateOrUpdateIssueNotifications(opts NotificationOpts) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
 
-	if err := createOrUpdateIssueNotifications(sess, issueID, commentID, notificationAuthorID); err != nil {
+	if err := createOrUpdateNotifications(sess, opts); err != nil {
 		return err
 	}
 
 	return sess.Commit()
 }
 
-func createOrUpdateIssueNotifications(e Engine, issueID, commentID int64, notificationAuthorID int64) error {
-	issueWatches, err := getIssueWatchers(e, issueID)
+func createOrUpdateNotifications(e Engine, opts NotificationOpts) error {
+	issueWatches, err := getIssueWatchers(e, opts.IssueID)
 	if err != nil {
 		return err
 	}
 
-	issue, err := getIssueByID(e, issueID)
+	issue, err := getIssueByID(e, opts.IssueID)
 	if err != nil {
 		return err
 	}
@@ -90,7 +116,7 @@ func createOrUpdateIssueNotifications(e Engine, issueID, commentID int64, notifi
 		return err
 	}
 
-	notifications, err := getNotificationsByIssueID(e, issueID)
+	notifications, err := getNotificationsByIssueID(e, opts.IssueID)
 	if err != nil {
 		return err
 	}
@@ -99,7 +125,7 @@ func createOrUpdateIssueNotifications(e Engine, issueID, commentID int64, notifi
 
 	notifyUser := func(userID int64) error {
 		// do not send notification for the own issuer/commenter
-		if userID == notificationAuthorID {
+		if userID == opts.DoerID {
 			return nil
 		}
 
@@ -109,9 +135,9 @@ func createOrUpdateIssueNotifications(e Engine, issueID, commentID int64, notifi
 		alreadyNotified[userID] = struct{}{}
 
 		if notificationExists(notifications, issue.ID, userID) {
-			return updateIssueNotification(e, userID, issue.ID, commentID, notificationAuthorID)
+			return updateNotification(e, userID, opts)
 		}
-		return createIssueNotification(e, userID, issue, commentID, notificationAuthorID)
+		return createNotification(e, userID, issue.RepoID, opts, issue.IsPull)
 	}
 
 	for _, issueWatch := range issueWatches {
@@ -164,17 +190,19 @@ func notificationExists(notifications []*Notification, issueID, userID int64) bo
 	return false
 }
 
-func createIssueNotification(e Engine, userID int64, issue *Issue, commentID, updatedByID int64) error {
+func createNotification(e Engine, userID, repoID int64, opts NotificationOpts, isPull bool) error {
 	notification := &Notification{
 		UserID:    userID,
-		RepoID:    issue.RepoID,
+		RepoID:    repoID,
 		Status:    NotificationStatusUnread,
-		IssueID:   issue.ID,
-		CommentID: commentID,
-		UpdatedBy: updatedByID,
+		IssueID:   opts.IssueID,
+		CommentID: opts.CommentID,
+		CommitID:  opts.CommitID,
+		ReleaseID: opts.ReleaseID,
+		UpdatedBy: opts.DoerID,
 	}
 
-	if issue.IsPull {
+	if isPull {
 		notification.Source = NotificationSourcePullRequest
 	} else {
 		notification.Source = NotificationSourceIssue
@@ -184,8 +212,8 @@ func createIssueNotification(e Engine, userID int64, issue *Issue, commentID, up
 	return err
 }
 
-func updateIssueNotification(e Engine, userID, issueID, commentID, updatedByID int64) error {
-	notification, err := getIssueNotification(e, userID, issueID)
+func updateNotification(e Engine, userID int64, opts NotificationOpts) error {
+	notification, err := getNotification(e, userID, opts.IssueID)
 	if err != nil {
 		return err
 	}
@@ -195,10 +223,10 @@ func updateIssueNotification(e Engine, userID, issueID, commentID, updatedByID i
 	var cols []string
 	if notification.Status == NotificationStatusRead {
 		notification.Status = NotificationStatusUnread
-		notification.CommentID = commentID
+		notification.CommentID = opts.CommentID
 		cols = []string{"status", "update_by", "comment_id"}
 	} else {
-		notification.UpdatedBy = updatedByID
+		notification.UpdatedBy = opts.DoerID
 		cols = []string{"update_by"}
 	}
 
@@ -206,7 +234,7 @@ func updateIssueNotification(e Engine, userID, issueID, commentID, updatedByID i
 	return err
 }
 
-func getIssueNotification(e Engine, userID, issueID int64) (*Notification, error) {
+func getNotification(e Engine, userID, issueID int64) (*Notification, error) {
 	notification := new(Notification)
 	_, err := e.
 		Where("user_id = ?", userID).
@@ -468,7 +496,7 @@ func getNotificationCount(e Engine, user *User, status NotificationStatus) (coun
 }
 
 func setNotificationStatusReadIfUnread(e Engine, userID, issueID int64) error {
-	notification, err := getIssueNotification(e, userID, issueID)
+	notification, err := getNotification(e, userID, issueID)
 	// ignore if not exists
 	if err != nil {
 		return nil
