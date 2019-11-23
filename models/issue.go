@@ -687,11 +687,7 @@ func (issue *Issue) ChangeStatus(doer *User, isClosed bool) (err error) {
 		return err
 	}
 
-	if err = sess.Commit(); err != nil {
-		return fmt.Errorf("Commit: %v", err)
-	}
-
-	return nil
+	return sess.Commit()
 }
 
 // ChangeTitle changes the title of this issue, as the given user.
