@@ -500,6 +500,9 @@ func PushUpdate(repo *models.Repository, branch string, opts PushUpdateOptions) 
 			log.Error("models.RemoveDeletedBranch %s/%s failed: %v", repo.ID, opts.Branch, err)
 		}
 
+		// Cache for big repository
+		repo_module.CacheRef(gitRepo, opts.RefFullName)
+
 		log.Trace("TriggerTask '%s/%s' by %s", repo.Name, branch, pusher.Name)
 
 		go pull_service.AddTestPullRequestTask(pusher, repo.ID, branch, true, opts.OldCommitID, opts.NewCommitID)
@@ -553,6 +556,9 @@ func PushUpdates(repo *models.Repository, optsList []*PushUpdateOptions) error {
 			if err = models.RemoveDeletedBranch(repo.ID, opts.Branch); err != nil {
 				log.Error("models.RemoveDeletedBranch %s/%s failed: %v", repo.ID, opts.Branch, err)
 			}
+
+			// Cache for big repository
+			repo_module.CacheRef(gitRepo, opts.RefFullName)
 
 			log.Trace("TriggerTask '%s/%s' by %s", repo.Name, opts.Branch, pusher.Name)
 
