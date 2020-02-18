@@ -106,7 +106,71 @@ func (*DummyQueue) IsEmpty() bool {
 	return true
 }
 
-var queuesMap = map[Type]NewQueueFunc{DummyQueueType: NewDummyQueue}
+// NoQueueType is the type for the no queue
+const NoQueueType Type = "no_queue"
+
+var (
+	_ Queue = &NoQueue{}
+)
+
+// NoQueue is not a queue, it will execute the func when push
+type NoQueue struct {
+	handler  HandlerFunc
+	exemplar interface{}
+}
+
+// NewNoQueue creates a queue of type NoQueue
+func NewNoQueue(handler HandlerFunc, opts, exemplar interface{}) (Queue, error) {
+	return &NoQueue{
+		handler:  handler,
+		exemplar: exemplar,
+	}, nil
+}
+
+// Run does nothing
+func (*NoQueue) Run(_, _ func(context.Context, func())) {}
+
+// Push fakes a push of data to the queue
+func (q *NoQueue) Push(data Data) error {
+	q.handler(data)
+	return nil
+}
+
+// PushFunc fakes a push of data to the queue with a function. The function is never run.
+func (q *NoQueue) PushFunc(data Data, fn func() error) error {
+	if fn != nil {
+		if err := fn(); err != nil {
+			return err
+		}
+	}
+	q.handler(data)
+	return nil
+}
+
+// Has always returns false as this queue never does anything
+func (*NoQueue) Has(Data) (bool, error) {
+	return false, nil
+}
+
+// Flush always returns nil
+func (*NoQueue) Flush(time.Duration) error {
+	return nil
+}
+
+// FlushWithContext always returns nil
+func (*NoQueue) FlushWithContext(context.Context) error {
+	return nil
+}
+
+// IsEmpty asserts that the queue is empty
+func (*NoQueue) IsEmpty() bool {
+	return true
+}
+
+var queuesMap = map[Type]NewQueueFunc{
+	DummyQueueType: NewDummyQueue,
+	NoQueueType:    NewNoQueue,
+}
 
 // RegisteredTypes provides the list of requested types of queues
 func RegisteredTypes() []Type {
