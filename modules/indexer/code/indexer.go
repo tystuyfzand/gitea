@@ -33,6 +33,7 @@ type Indexer interface {
 	Close()
 }
 
+// IndexerData represents data stored in the code indexer
 type IndexerData struct {
 	RepoID   int64
 	IsDelete bool
