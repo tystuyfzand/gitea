@@ -130,13 +130,13 @@ func NewNoQueue(handler HandlerFunc, opts, exemplar interface{}) (Queue, error) 
 // Run does nothing
 func (*NoQueue) Run(_, _ func(context.Context, func())) {}
 
-// Push fakes a push of data to the queue
+// Push handles the data directly, bypassing the queue mechanism
 func (q *NoQueue) Push(data Data) error {
 	q.handler(data)
 	return nil
 }
 
-// PushFunc fakes a push of data to the queue with a function. The function is never run.
+// PushFunc Push handles the data directly, bypassing the queue mechanism. The function is always run.
 func (q *NoQueue) PushFunc(data Data, fn func() error) error {
 	if fn != nil {
 		if err := fn(); err != nil {
@@ -147,7 +147,7 @@ func (q *NoQueue) PushFunc(data Data, fn func() error) error {
 	return nil
 }
 
-// Has always returns false as this queue never does anything
+// Has always returns false as this queue never holds anything
 func (*NoQueue) Has(Data) (bool, error) {
 	return false, nil
 }
