@@ -1584,7 +1584,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 	releaseAttachments := make([]string, 0, len(attachments))
 	for i := 0; i < len(attachments); i++ {
-		releaseAttachments = append(releaseAttachments, attachments[i].UUID)
+		releaseAttachments = append(releaseAttachments, attachments[i].RelativePath())
 	}
 
 	if err = deleteBeans(sess,
