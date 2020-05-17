@@ -613,7 +613,7 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 		return
 	}
 
-	if setting.AttachmentEnabled {
+	if setting.Attachment.Enabled {
 		attachments = form.Files
 	}
 
@@ -1522,7 +1522,7 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 	}
 
 	var attachments []string
-	if setting.AttachmentEnabled {
+	if setting.Attachment.Enabled {
 		attachments = form.Files
 	}
 

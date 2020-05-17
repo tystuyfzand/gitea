@@ -208,7 +208,7 @@ func NewReleasePost(ctx *context.Context, form auth.NewReleaseForm) {
 	}
 
 	var attachmentUUIDs []string
-	if setting.AttachmentEnabled {
+	if setting.Attachment.Enabled {
 		attachmentUUIDs = form.Files
 	}
 
@@ -329,7 +329,7 @@ func EditReleasePost(ctx *context.Context, form auth.EditReleaseForm) {
 	}
 
 	var attachmentUUIDs []string
-	if setting.AttachmentEnabled {
+	if setting.Attachment.Enabled {
 		attachmentUUIDs = form.Files
 	}
 
