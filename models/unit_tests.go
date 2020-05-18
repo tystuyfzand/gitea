@@ -16,6 +16,7 @@ import (
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/unknwon/com"
@@ -65,6 +66,10 @@ func MainTest(m *testing.M, pathToGiteaRoot string) {
 	setting.GravatarSourceURL, err = url.Parse("https://secure.gravatar.com/avatar/")
 	if err != nil {
 		fatalTestError("url.Parse: %v\n", err)
+	}
+
+	if err = storage.Init(); err != nil {
+		fatalTestError("storage.Init: %v\n", err)
 	}
 
 	if err = removeAllWithRetry(setting.RepoRootPath); err != nil {
