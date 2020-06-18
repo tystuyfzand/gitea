@@ -39,12 +39,8 @@ require (
 	github.com/glycerine/go-unsnap-stream v0.0.0-20190901134440-81cf024a9e0a // indirect
 	github.com/go-enry/go-enry/v2 v2.5.2
 	github.com/go-git/go-billy/v5 v5.0.0
-<<<<<<< HEAD
 	github.com/go-git/go-git/v5 v5.1.0
-=======
-	github.com/go-git/go-git/v5 v5.0.0
-	github.com/go-ini/ini v1.56.0 // indirect
->>>>>>> Add a storage layer for attachments
+	github.com/go-ini/ini v1.57.0 // indirect
 	github.com/go-openapi/jsonreference v0.19.3 // indirect
 	github.com/go-redis/redis v6.15.2+incompatible
 	github.com/go-sql-driver/mysql v1.4.1
